@@ -1,0 +1,69 @@
+#!/usr/bin/python3
+
+import gpxpy
+import fitparse
+import argparse
+
+def semicircles_to_degrees(sc) -> float:
+    degrees = sc * (180/2**31)
+    return round(degrees, 8)
+
+def parse_fit_to_gpx(fitname) -> gpxpy.gpx.GPX:
+    fitfile = fitparse.FitFile(fitname)
+
+    gpx = gpxpy.gpx.GPX()
+
+    gpxTrack = gpxpy.gpx.GPXTrack()
+    gpx.tracks.append(gpxTrack)
+
+    gpxSegment = gpxpy.gpx.GPXTrackSegment()
+    gpxTrack.segments.append(gpxSegment)
+
+    for record in fitfile.get_messages("record"):
+
+        longitude, latitude, time = 0, 0, 0
+
+        for data in record.fields:
+            if data.name == "position_long":
+                longitude = data.value
+            if data.name == "position_lat":
+                latitude = data.value
+            if data.name == "timestamp":
+                time = data.value
+            if data.name == "altitude":
+                elevation = data.value
+
+        # check if record is valid
+        if not (longitude and latitude and time):
+            continue
+
+        # create and append gpx trackpoint
+        gpxTrackPoint = gpxpy.gpx.GPXTrackPoint()
+
+        gpxTrackPoint.latitude = semicircles_to_degrees(latitude)
+        gpxTrackPoint.longitude = semicircles_to_degrees(longitude)
+        gpxTrackPoint.time = time
+        gpxTrackPoint.elevation = round(elevation, 8)
+
+        gpxSegment.points.append(gpxTrackPoint)
+
+    return gpx
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="convert Garmin FIT files to GPX tracks")
+
+    parser.add_argument("fitfile", help="fit file to read")
+    parser.add_argument("-o", "--output", help="specify target file")
+
+    args = parser.parse_args()
+
+    gpx = parse_fit_to_gpx(args.fitfile)
+
+    if args.output:
+        target_file = open(args.output, 'x')
+        target_file.write(gpx.to_xml())
+
+        target_file.close()
+    else:
+        print(gpx.to_xml())
