@@ -30,7 +30,7 @@ def parse_fit_to_gpx(fitname) -> gpxpy.gpx.GPX:
             if data.name == "timestamp":
                 gpxTrackPoint.time      = data.value
             if data.name == "altitude":
-                gpxTrackPoint.elevation = data.value
+                gpxTrackPoint.elevation = round(data.value, 8)
 
         if not (gpxTrackPoint.latitude and gpxTrackPoint.longitude):
             continue
