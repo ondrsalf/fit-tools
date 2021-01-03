@@ -20,30 +20,20 @@ def parse_fit_to_gpx(fitname) -> gpxpy.gpx.GPX:
     gpxTrack.segments.append(gpxSegment)
 
     for record in fitfile.get_messages("record"):
-
-        longitude, latitude, time = 0, 0, 0
+        gpxTrackPoint = gpxpy.gpx.GPXTrackPoint()
 
         for data in record.fields:
             if data.name == "position_long":
-                longitude = data.value
+                gpxTrackPoint.longitude = semicircles_to_degrees(data.value)
             if data.name == "position_lat":
-                latitude = data.value
+                gpxTrackPoint.latitude  = semicircles_to_degrees(data.value)
             if data.name == "timestamp":
-                time = data.value
+                gpxTrackPoint.time      = data.value
             if data.name == "altitude":
-                elevation = data.value
+                gpxTrackPoint.elevation = data.value
 
-        # check if record is valid
-        if not (longitude and latitude and time):
+        if not (gpxTrackPoint.latitude and gpxTrackPoint.longitude):
             continue
-
-        # create and append gpx trackpoint
-        gpxTrackPoint = gpxpy.gpx.GPXTrackPoint()
-
-        gpxTrackPoint.latitude = semicircles_to_degrees(latitude)
-        gpxTrackPoint.longitude = semicircles_to_degrees(longitude)
-        gpxTrackPoint.time = time
-        gpxTrackPoint.elevation = round(elevation, 8)
 
         gpxSegment.points.append(gpxTrackPoint)
 
@@ -55,15 +45,29 @@ if __name__ == "__main__":
 
     parser.add_argument("fitfile", help="fit file to read")
     parser.add_argument("-o", "--output", help="specify target file")
+    parser.add_argument("-c", "--stdout", action="store_true", help="print GPX/XML to stdout")
 
     args = parser.parse_args()
 
     gpx = parse_fit_to_gpx(args.fitfile)
 
     if args.output:
-        target_file = open(args.output, 'x')
-        target_file.write(gpx.to_xml())
+        output_file = open(args.output, 'x')
+        output_file.write(gpx.to_xml())
 
-        target_file.close()
-    else:
+        output_file.close()
+
+    elif args.stdout:
         print(gpx.to_xml())
+
+    else:
+        # omit ending *.fit and append .gpx instead
+        if args.fitfile[-4:].lower() == ".fit":
+            output_filename = args.fitfile[:-4] + ".gpx"
+        else:
+            output_filename = args.fitfile + ".gpx"
+
+        output_file = open(output_filename, 'x')
+        output_file.write(gpx.to_xml())
+
+        output_file.close()
