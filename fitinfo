@@ -22,43 +22,7 @@ from typing import *
 KM_TO_MILES = 0.621371
 M_TO_FEET = 3.28084
 
-def parse_fit_file(filename) -> mod_gpxpy.gpx.GPX:
-    import fitparse
-
-    # init a empty gpx object
-    target_gpx = mod_gpxpy.gpx.GPX()
-
-    track = mod_gpxpy.gpx.GPXTrack()
-    target_gpx.tracks.append(track)
-
-    segment = mod_gpxpy.gpx.GPXTrackSegment()
-    track.segments.append(segment)
-
-    # open and parse the fit file
-    fitfile = fitparse.FitFile(filename)
-
-    for record in fitfile.get_messages("record"):
-        for data in record:
-            if data.name == "position_long":
-                longitude = sc_to_deg(data.value)
-            if data.name == "position_lat":
-                latitude = sc_to_deg(data.value)
-            if data.name == "timestamp":
-                time = data.value
-
-        trackpoint = mod_gpxpy.gpx.GPXTrackPoint()
-        trackpoint.longitude = longitude
-        trackpoint.latitude = latitude
-        trackpoint.time = time
-
-        segment.points.append(trackpoint)
-
-    return target_gpx
-
-def sc_to_deg(sc) -> float:
-    """takes an longitude or latitude in semicircles and returns them in degrees (rounded)"""
-    deg = sc * (180/2**31)
-    return round(deg, 8)
+from fitparse_to_gpxpy import *
 
 def format_time(time_s: float) -> str:
     if not time_s:
@@ -163,7 +127,7 @@ def run(gpx_files: List[str]) -> None:
     for gpx_file in gpx_files:
         try:
             #gpx = mod_gpxpy.parse(open(gpx_file))
-            gpx = parse_fit_file(gpx_file)
+            gpx = parse_fit_to_gpx(gpx_file)
             print_gpx_info(gpx, gpx_file)
         except Exception as e:
             mod_logging.exception(e)
